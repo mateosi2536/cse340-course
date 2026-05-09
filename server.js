@@ -28,6 +28,6 @@ app.get('/projects', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running`);
+    console.log(`Server is running!!!!`);
     console.log(`Environment: ${NODE_ENV}`);
 });
