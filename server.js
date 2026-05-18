@@ -3,6 +3,8 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { testConnection } from './src/models/db.js';
 import { getAllOrganizations } from './src/models/organizations.js';
+import { getAllProjects } from './src/models/projects.js';
+import { getAllCategories } from './src/models/categories.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,12 +36,24 @@ app.get('/organizations', async (req, res) => {
     }
 });
 
-app.get('/projects', (req, res) => {
-    res.render('projects', { title: 'Service Projects' });
+app.get('/projects', async (req, res) => {
+    try {
+        const projects = await getAllProjects();
+        res.render('projects', { title: 'Service Projects', projects });
+    } catch (error) {
+        console.error('Error fetching projects:', error);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
-app.get('/categories', (req, res) => {
-    res.render('categories', { title: 'Service Categories' });
+app.get('/categories', async (req, res) => {
+    try {
+        const categories = await getAllCategories();
+        res.render('categories', { title: 'Service Categories', categories });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
 app.listen(PORT, async () => {

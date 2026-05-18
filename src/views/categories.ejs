@@ -4,10 +4,9 @@
     <h1><%= title %></h1>
     <p>Browse our service projects by category:</p>
     <ul>
-        <li>Education & Tutoring</li>
-        <li>Environment & Cleanup</li>
-        <li>Food & Hunger</li>
-        <li>Community Development</li>
+        <% categories.forEach(category => { %>
+            <li><%= category.name %></li>
+        <% }); %>
     </ul>
 </main>
 
