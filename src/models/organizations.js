@@ -1,21 +1,32 @@
 import db from './db.js';
 
-/**
- * Retrieves all partner organizations from the database.
- * Explicitly requests necessary columns to avoid performance and security
- * issues related to SELECT *.
- * 
- * @returns {Promise<Array>} List of organizations
- */
 const getAllOrganizations = async () => {
-  const query = `
-    SELECT organization_id, name, description, contact_email, logo_filename
-    FROM public.organization;
-  `;
-
-  const result = await db.query(query);
-
-  return result.rows;
+    const query = `
+        SELECT organization_id, name, description, contact_email, logo_filename
+        FROM public.organization;
+    `;
+    const result = await db.query(query);
+    return result.rows;
 };
 
-export { getAllOrganizations };
+const getOrganizationDetails = async (organizationId) => {
+    const query = `
+        SELECT organization_id, name, description, contact_email, logo_filename
+        FROM public.organization
+        WHERE organization_id = $1;
+    `;
+    const result = await db.query(query, [organizationId]);
+    return result.rows[0];
+};
+
+const getProjectsByOrganizationId = async (organizationId) => {
+    const query = `
+        SELECT project_id, title, description, date, location
+        FROM public.project
+        WHERE organization_id = $1;
+    `;
+    const result = await db.query(query, [organizationId]);
+    return result.rows;
+};
+
+export { getAllOrganizations, getOrganizationDetails, getProjectsByOrganizationId };

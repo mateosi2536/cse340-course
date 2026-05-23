@@ -2,9 +2,8 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { testConnection } from './src/models/db.js';
-import { getAllOrganizations } from './src/models/organizations.js';
-import { getAllProjects } from './src/models/projects.js';
-import { getAllCategories } from './src/models/categories.js';
+import router from './src/routes.js';
+import { handleNotFound, handleError } from './src/controllers/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,42 +18,17 @@ app.set('views', path.join(__dirname, 'src/views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
-    res.render('home', { title: 'Home' });
+app.use((req, res, next) => {
+    if (NODE_ENV === 'development') {
+        console.log(`${req.method} ${req.url}`);
+    }
+    res.locals.NODE_ENV = NODE_ENV;
+    next();
 });
 
-app.get('/organizations', async (req, res) => {
-    try {
-        const organizations = await getAllOrganizations();
-        res.render('organizations', { 
-            title: 'Our Partner Organizations', 
-            organizations 
-        });
-    } catch (error) {
-        console.error('Error fetching organizations:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-app.get('/projects', async (req, res) => {
-    try {
-        const projects = await getAllProjects();
-        res.render('projects', { title: 'Service Projects', projects });
-    } catch (error) {
-        console.error('Error fetching projects:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-app.get('/categories', async (req, res) => {
-    try {
-        const categories = await getAllCategories();
-        res.render('categories', { title: 'Service Categories', categories });
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
+app.use(router);
+app.use(handleNotFound);
+app.use(handleError);
 
 app.listen(PORT, async () => {
     try {
