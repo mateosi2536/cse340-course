@@ -45,4 +45,33 @@ const getCategoriesForProject = async (id) => {
     return result.rows;
 };
 
-export { getAllProjects, getUpcomingProjects, getProjectDetails, getCategoriesForProject };
+const insertProject = async (organization_id, title, description, location, date) => {
+    const query = `
+        INSERT INTO public.project (organization_id, title, description, location, date)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING project_id;
+    `;
+    const result = await db.query(query, [organization_id, title, description, location, date]);
+    return result.rows[0];
+};
+
+const updateProject = async (id, organization_id, title, description, location, date) => {
+    const query = `
+        UPDATE public.project
+        SET organization_id = $1, title = $2, description = $3, location = $4, date = $5
+        WHERE project_id = $6;
+    `;
+    await db.query(query, [organization_id, title, description, location, date, id]);
+};
+
+const setProjectCategories = async (project_id, category_ids) => {
+    await db.query(`DELETE FROM public.project_category WHERE project_id = $1;`, [project_id]);
+    for (const category_id of category_ids) {
+        await db.query(
+            `INSERT INTO public.project_category (project_id, category_id) VALUES ($1, $2);`,
+            [project_id, category_id]
+        );
+    }
+};
+
+export { getAllProjects, getUpcomingProjects, getProjectDetails, getCategoriesForProject, insertProject, updateProject, setProjectCategories };
