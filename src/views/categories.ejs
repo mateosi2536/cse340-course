@@ -3,9 +3,13 @@
 <main>
     <h1><%= title %></h1>
     <p>Browse our service projects by category:</p>
+    <a href="/new-category" class="btn">Add New Category</a>
     <ul>
         <% categories.forEach(category => { %>
-            <li><a href="/category/<%= category.category_id %>"><%= category.name %></a></li>
+            <li>
+                <a href="/category/<%= category.category_id %>"><%= category.name %></a>
+                <a href="/edit-category/<%= category.category_id %>" class="btn btn-secondary">Edit</a>
+            </li>
         <% }); %>
     </ul>
 </main>
