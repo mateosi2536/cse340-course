@@ -1,8 +1,10 @@
 import express from 'express';
+import session from 'express-session';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { testConnection } from './src/models/db.js';
 import router from './src/routes.js';
+import flash from './src/middleware/flash.js';
 import { handleNotFound, handleError } from './src/controllers/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +20,15 @@ app.set('views', path.join(__dirname, 'src/views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 60 * 60 * 1000 }
+}));
+
+app.use(flash);
 
 app.use((req, res, next) => {
     if (NODE_ENV === 'development') {

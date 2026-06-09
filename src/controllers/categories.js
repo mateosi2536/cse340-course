@@ -1,4 +1,12 @@
+import { body, validationResult } from 'express-validator';
 import { getAllCategories, getCategoryDetails, getProjectsByCategoryId, insertCategory, updateCategory } from '../models/categories.js';
+
+const categoryValidation = [
+    body('name')
+        .trim()
+        .notEmpty().withMessage('Category name is required.')
+        .isLength({ min: 3, max: 100 }).withMessage('Category name must be between 3 and 100 characters.')
+];
 
 const showCategoriesPage = async (req, res, next) => {
     try {
@@ -21,7 +29,7 @@ const showCategoryDetailsPage = async (req, res, next) => {
 
 const showNewCategoryPage = async (req, res, next) => {
     try {
-        res.render('new-category', { title: 'New Category', errors: [], formData: {} });
+        res.render('new-category', { title: 'New Category', formData: {} });
     } catch (error) {
         next(error);
     }
@@ -29,19 +37,14 @@ const showNewCategoryPage = async (req, res, next) => {
 
 const createCategory = async (req, res, next) => {
     try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            errors.array().forEach(error => req.flash('error', error.msg));
+            return res.redirect('/new-category');
+        }
         const { name } = req.body;
-        const errors = [];
-        if (!name || name.trim().length === 0) {
-            errors.push('Category name is required.');
-        } else if (name.trim().length < 3) {
-            errors.push('Category name must be at least 3 characters.');
-        } else if (name.trim().length > 100) {
-            errors.push('Category name must be 100 characters or fewer.');
-        }
-        if (errors.length > 0) {
-            return res.render('new-category', { title: 'New Category', errors, formData: { name } });
-        }
-        await insertCategory(name.trim());
+        await insertCategory(name);
+        req.flash('success', 'Category created successfully.');
         res.redirect('/categories');
     } catch (error) {
         next(error);
@@ -51,7 +54,7 @@ const createCategory = async (req, res, next) => {
 const showEditCategoryPage = async (req, res, next) => {
     try {
         const category = await getCategoryDetails(req.params.id);
-        res.render('edit-category', { title: 'Edit Category', errors: [], formData: category });
+        res.render('edit-category', { title: 'Edit Category', formData: category });
     } catch (error) {
         next(error);
     }
@@ -59,24 +62,19 @@ const showEditCategoryPage = async (req, res, next) => {
 
 const updateCategoryPage = async (req, res, next) => {
     try {
-        const { name } = req.body;
         const id = req.params.id;
-        const errors = [];
-        if (!name || name.trim().length === 0) {
-            errors.push('Category name is required.');
-        } else if (name.trim().length < 3) {
-            errors.push('Category name must be at least 3 characters.');
-        } else if (name.trim().length > 100) {
-            errors.push('Category name must be 100 characters or fewer.');
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            errors.array().forEach(error => req.flash('error', error.msg));
+            return res.redirect(`/edit-category/${id}`);
         }
-        if (errors.length > 0) {
-            return res.render('edit-category', { title: 'Edit Category', errors, formData: { name, category_id: id } });
-        }
-        await updateCategory(id, name.trim());
-        res.redirect('/categories');
+        const { name } = req.body;
+        await updateCategory(id, name);
+        req.flash('success', 'Category updated successfully.');
+        res.redirect(`/category/${id}`);
     } catch (error) {
         next(error);
     }
 };
 
-export { showCategoriesPage, showCategoryDetailsPage, showNewCategoryPage, createCategory, showEditCategoryPage, updateCategoryPage };
+export { categoryValidation, showCategoriesPage, showCategoryDetailsPage, showNewCategoryPage, createCategory, showEditCategoryPage, updateCategoryPage };

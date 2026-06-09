@@ -1,8 +1,29 @@
+import { body, validationResult } from 'express-validator';
 import { getUpcomingProjects, getProjectDetails, getCategoriesForProject, insertProject, updateProject, setProjectCategories } from '../models/projects.js';
 import { getAllOrganizations } from '../models/organizations.js';
 import { getAllCategories } from '../models/categories.js';
 
 const NUMBER_OF_UPCOMING_PROJECTS = 5;
+
+const projectValidation = [
+    body('title')
+        .trim()
+        .notEmpty().withMessage('Title is required.')
+        .isLength({ min: 3, max: 150 }).withMessage('Title must be between 3 and 150 characters.'),
+    body('description')
+        .trim()
+        .notEmpty().withMessage('Description is required.'),
+    body('location')
+        .trim()
+        .notEmpty().withMessage('Location is required.')
+        .isLength({ max: 255 }).withMessage('Location must be 255 characters or fewer.'),
+    body('date')
+        .trim()
+        .notEmpty().withMessage('Date is required.'),
+    body('organization_id')
+        .trim()
+        .notEmpty().withMessage('Organization is required.')
+];
 
 const showProjectsPage = async (req, res, next) => {
     try {
@@ -23,37 +44,11 @@ const showProjectDetailsPage = async (req, res, next) => {
     }
 };
 
-const validateProjectFields = ({ title, description, location, date, organization_id }) => {
-    const errors = [];
-    if (!title || title.trim().length === 0) {
-        errors.push('Title is required.');
-    } else if (title.trim().length < 3) {
-        errors.push('Title must be at least 3 characters.');
-    } else if (title.trim().length > 150) {
-        errors.push('Title must be 150 characters or fewer.');
-    }
-    if (!description || description.trim().length === 0) {
-        errors.push('Description is required.');
-    }
-    if (!location || location.trim().length === 0) {
-        errors.push('Location is required.');
-    } else if (location.trim().length > 255) {
-        errors.push('Location must be 255 characters or fewer.');
-    }
-    if (!date || date.trim().length === 0) {
-        errors.push('Date is required.');
-    }
-    if (!organization_id) {
-        errors.push('Organization is required.');
-    }
-    return errors;
-};
-
 const showNewProjectPage = async (req, res, next) => {
     try {
         const organizations = await getAllOrganizations();
         const categories = await getAllCategories();
-        res.render('new-project', { title: 'New Service Project', errors: [], formData: {}, organizations, categories });
+        res.render('new-project', { title: 'New Service Project', formData: {}, organizations, categories });
     } catch (error) {
         next(error);
     }
@@ -61,16 +56,16 @@ const showNewProjectPage = async (req, res, next) => {
 
 const createProject = async (req, res, next) => {
     try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            errors.array().forEach(error => req.flash('error', error.msg));
+            return res.redirect('/new-project');
+        }
         const { title, description, location, date, organization_id } = req.body;
         const categoryIds = [].concat(req.body.categories || []);
-        const errors = validateProjectFields({ title, description, location, date, organization_id });
-        if (errors.length > 0) {
-            const organizations = await getAllOrganizations();
-            const categories = await getAllCategories();
-            return res.render('new-project', { title: 'New Service Project', errors, formData: { title, description, location, date, organization_id, categories: categoryIds }, organizations, categories });
-        }
-        const newProject = await insertProject(organization_id, title.trim(), description.trim(), location.trim(), date);
+        const newProject = await insertProject(organization_id, title, description, location, date);
         await setProjectCategories(newProject.project_id, categoryIds);
+        req.flash('success', 'Project created successfully.');
         res.redirect('/projects');
     } catch (error) {
         next(error);
@@ -88,7 +83,7 @@ const showEditProjectPage = async (req, res, next) => {
             date: String(project.date).substring(0, 10),
             categories: projectCategories.map(c => String(c.category_id)),
         };
-        res.render('edit-project', { title: 'Edit Service Project', errors: [], formData, organizations, categories });
+        res.render('edit-project', { title: 'Edit Service Project', formData, organizations, categories });
     } catch (error) {
         next(error);
     }
@@ -96,21 +91,21 @@ const showEditProjectPage = async (req, res, next) => {
 
 const updateProjectPage = async (req, res, next) => {
     try {
+        const id = req.params.id;
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            errors.array().forEach(error => req.flash('error', error.msg));
+            return res.redirect(`/edit-project/${id}`);
+        }
         const { title, description, location, date, organization_id } = req.body;
         const categoryIds = [].concat(req.body.categories || []);
-        const id = req.params.id;
-        const errors = validateProjectFields({ title, description, location, date, organization_id });
-        if (errors.length > 0) {
-            const organizations = await getAllOrganizations();
-            const categories = await getAllCategories();
-            return res.render('edit-project', { title: 'Edit Service Project', errors, formData: { title, description, location, date, organization_id, categories: categoryIds, project_id: id }, organizations, categories });
-        }
-        await updateProject(id, organization_id, title.trim(), description.trim(), location.trim(), date);
+        await updateProject(id, organization_id, title, description, location, date);
         await setProjectCategories(id, categoryIds);
-        res.redirect('/projects');
+        req.flash('success', 'Project updated successfully.');
+        res.redirect(`/project/${id}`);
     } catch (error) {
         next(error);
     }
 };
 
-export { showProjectsPage, showProjectDetailsPage, showNewProjectPage, createProject, showEditProjectPage, updateProjectPage };
+export { projectValidation, showProjectsPage, showProjectDetailsPage, showNewProjectPage, createProject, showEditProjectPage, updateProjectPage };

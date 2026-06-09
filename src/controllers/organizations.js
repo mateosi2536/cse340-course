@@ -1,4 +1,23 @@
+import { body, validationResult } from 'express-validator';
 import { getAllOrganizations, getOrganizationDetails, getProjectsByOrganizationId, insertOrganization, updateOrganization } from '../models/organizations.js';
+
+const organizationValidation = [
+    body('name')
+        .trim()
+        .notEmpty().withMessage('Organization name is required.')
+        .isLength({ min: 3, max: 150 }).withMessage('Organization name must be between 3 and 150 characters.'),
+    body('description')
+        .trim()
+        .notEmpty().withMessage('Description is required.')
+        .isLength({ min: 10 }).withMessage('Description must be at least 10 characters.'),
+    body('contact_email')
+        .trim()
+        .notEmpty().withMessage('Contact email is required.')
+        .isEmail().withMessage('Contact email must be a valid email address.'),
+    body('logo_filename')
+        .trim()
+        .notEmpty().withMessage('Logo filename is required.')
+];
 
 const showOrganizationsPage = async (req, res, next) => {
     try {
@@ -19,34 +38,9 @@ const showOrganizationDetailsPage = async (req, res, next) => {
     }
 };
 
-const validateOrganizationFields = ({ name, description, contact_email, logo_filename }) => {
-    const errors = [];
-    if (!name || name.trim().length === 0) {
-        errors.push('Organization name is required.');
-    } else if (name.trim().length < 3) {
-        errors.push('Organization name must be at least 3 characters.');
-    } else if (name.trim().length > 150) {
-        errors.push('Organization name must be 150 characters or fewer.');
-    }
-    if (!description || description.trim().length === 0) {
-        errors.push('Description is required.');
-    } else if (description.trim().length < 10) {
-        errors.push('Description must be at least 10 characters.');
-    }
-    if (!contact_email || contact_email.trim().length === 0) {
-        errors.push('Contact email is required.');
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact_email.trim())) {
-        errors.push('Contact email must be a valid email address.');
-    }
-    if (!logo_filename || logo_filename.trim().length === 0) {
-        errors.push('Logo filename is required.');
-    }
-    return errors;
-};
-
 const showNewOrganizationPage = async (req, res, next) => {
     try {
-        res.render('new-organization', { title: 'New Organization', errors: [], formData: {} });
+        res.render('new-organization', { title: 'New Organization', formData: {} });
     } catch (error) {
         next(error);
     }
@@ -54,12 +48,14 @@ const showNewOrganizationPage = async (req, res, next) => {
 
 const createOrganization = async (req, res, next) => {
     try {
-        const { name, description, contact_email, logo_filename } = req.body;
-        const errors = validateOrganizationFields({ name, description, contact_email, logo_filename });
-        if (errors.length > 0) {
-            return res.render('new-organization', { title: 'New Organization', errors, formData: { name, description, contact_email, logo_filename } });
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            errors.array().forEach(error => req.flash('error', error.msg));
+            return res.redirect('/new-organization');
         }
-        await insertOrganization(name.trim(), description.trim(), contact_email.trim(), logo_filename.trim());
+        const { name, description, contact_email, logo_filename } = req.body;
+        await insertOrganization(name, description, contact_email, logo_filename);
+        req.flash('success', 'Organization created successfully.');
         res.redirect('/organizations');
     } catch (error) {
         next(error);
@@ -69,7 +65,7 @@ const createOrganization = async (req, res, next) => {
 const showEditOrganizationPage = async (req, res, next) => {
     try {
         const organization = await getOrganizationDetails(req.params.id);
-        res.render('edit-organization', { title: 'Edit Organization', errors: [], formData: organization });
+        res.render('edit-organization', { title: 'Edit Organization', formData: organization });
     } catch (error) {
         next(error);
     }
@@ -77,17 +73,19 @@ const showEditOrganizationPage = async (req, res, next) => {
 
 const updateOrganizationPage = async (req, res, next) => {
     try {
-        const { name, description, contact_email, logo_filename } = req.body;
         const id = req.params.id;
-        const errors = validateOrganizationFields({ name, description, contact_email, logo_filename });
-        if (errors.length > 0) {
-            return res.render('edit-organization', { title: 'Edit Organization', errors, formData: { name, description, contact_email, logo_filename, organization_id: id } });
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            errors.array().forEach(error => req.flash('error', error.msg));
+            return res.redirect(`/edit-organization/${id}`);
         }
-        await updateOrganization(id, name.trim(), description.trim(), contact_email.trim(), logo_filename.trim());
-        res.redirect('/organizations');
+        const { name, description, contact_email, logo_filename } = req.body;
+        await updateOrganization(id, name, description, contact_email, logo_filename);
+        req.flash('success', 'Organization updated successfully.');
+        res.redirect(`/organization/${id}`);
     } catch (error) {
         next(error);
     }
 };
 
-export { showOrganizationsPage, showOrganizationDetailsPage, showNewOrganizationPage, createOrganization, showEditOrganizationPage, updateOrganizationPage };
+export { organizationValidation, showOrganizationsPage, showOrganizationDetailsPage, showNewOrganizationPage, createOrganization, showEditOrganizationPage, updateOrganizationPage };
