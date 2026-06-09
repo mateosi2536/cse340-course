@@ -14,7 +14,9 @@
         <% }); %>
     </ul>
 
-    <a href="/edit-project/<%= project.project_id %>" class="btn">Edit Project</a>
+    <% if (user && user.role_name === 'admin') { %>
+        <a href="/edit-project/<%= project.project_id %>" class="btn">Edit Project</a>
+    <% } %>
 </main>
 
 <%- include('partials/footer') %>

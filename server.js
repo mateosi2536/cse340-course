@@ -35,6 +35,8 @@ app.use((req, res, next) => {
         console.log(`${req.method} ${req.url}`);
     }
     res.locals.NODE_ENV = NODE_ENV;
+    res.locals.user = req.session.user || null;
+    res.locals.isLoggedIn = !!req.session.user;
     next();
 });
 

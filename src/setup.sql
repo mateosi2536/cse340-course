@@ -2,6 +2,23 @@ DROP TABLE IF EXISTS project_category CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
 DROP TABLE IF EXISTS category CASCADE;
 DROP TABLE IF EXISTS organization CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+
+CREATE TABLE roles (
+    role_id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) UNIQUE NOT NULL,
+    role_description TEXT
+);
+
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role_id INTEGER REFERENCES roles(role_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE organization (
     organization_id SERIAL PRIMARY KEY,
@@ -64,3 +81,10 @@ INSERT INTO project_category (project_id, category_id) VALUES
 (1, 3), (2, 3), (3, 1), (4, 3), (5, 3),
 (6, 1), (7, 1), (8, 1), (9, 1), (10, 1),
 (11, 3), (12, 1), (13, 3), (14, 2), (15, 3);
+
+INSERT INTO roles (role_name, role_description) VALUES
+('user', 'Standard user with basic access.'),
+('admin', 'Administrator with full access.');
+
+INSERT INTO users (name, email, password_hash, role_id) VALUES
+('Admin', 'admin@example.com', '$2b$10$ccwTqMK.aqBfTNvsAwahs.attv6Z3CturG/hlBA8Ukpx9D3miatfq', (SELECT role_id FROM roles WHERE role_name = 'admin'));
